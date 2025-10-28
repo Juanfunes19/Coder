@@ -1,0 +1,28 @@
+[
+  {
+    "id": 2,
+    "title": "Mouse Logitech M720",
+    "description": "Mouse inalámbrico multi-dispositivo",
+    "code": "MS001",
+    "price": 35000,
+    "status": false,
+    "stock": 301,
+    "category": "Periféricos",
+    "thumbnails": [
+      "https://example.com/images/m720.jpg"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "TEST",
+    "description": "Mouse inalámbrico multi-dispositivo",
+    "code": "21",
+    "price": 35000,
+    "status": false,
+    "stock": 301,
+    "category": "Periféricos",
+    "thumbnails": [
+      "https://example.com/images/m720.jpg"
+    ]
+  }
+]
