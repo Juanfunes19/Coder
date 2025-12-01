@@ -1,62 +1,58 @@
-import fs from 'fs';
-import path from 'path';
-
-const productsPath = path.join(process.cwd(), 'src', 'data', 'products.json');
+import Product from "../models/Product.js";
 
 export default class ProductManager {
-  constructor() {
-    this.path = productsPath;
-    this.products = this._loadProducts();
-  }
+  async getProductsPaginated({ limit, page, sort, query }) {
+    let filter = {};
 
-  _loadProducts() {
-    if (!fs.existsSync(this.path)) {
-      fs.writeFileSync(this.path, '[]');
+    if (query) {
+      if (query === "available") {
+        filter = { status: true };
+      } else {
+        filter = { category: query };
+      }
     }
-    const data = fs.readFileSync(this.path, 'utf-8');
-    return JSON.parse(data);
-  }
 
-  _saveProducts() {
-    fs.writeFileSync(this.path, JSON.stringify(this.products, null, 2));
-  }
+    const limitNum = parseInt(limit) || 10;
+    const pageNum = parseInt(page) || 1;
 
-  getProducts() {
-    return this.products;
-  }
-
-  getProductById(id) {
-    return this.products.find(p => p.id === id);
-  }
-
-  addProduct(productData) {
-    const exists = this.products.some(p => p.code === productData.code);
-    if (exists) throw new Error('Product code already exists');
-
-    const newProduct = {
-      id: this.products.length ? this.products[this.products.length - 1].id + 1 : 1,
-      ...productData
+    const options = {
+      limit: limitNum,
+      page: pageNum,
+      sort: sort ? { price: sort === "asc" ? 1 : -1 } : {},
+      lean: true,
     };
 
-    this.products.push(newProduct);
-    this._saveProducts();
-    return newProduct;
+    if (Product.paginate) {
+      return await Product.paginate(filter, options);
+    }
+
+    return await this._paginateManually(filter, limitNum, pageNum, sort);
   }
 
-  updateProduct(id, updates) {
-    const index = this.products.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Product not found');
+  async _paginateManually(filter, limit, page, sort) {
+    let products = await Product.find(filter).lean();
 
-    this.products[index] = { ...this.products[index], ...updates, id };
-    this._saveProducts();
-    return this.products[index];
-  }
+    if (sort) {
+      products.sort((a, b) => {
+        return sort === "asc" ? a.price - b.price : b.price - a.price;
+      });
+    }
 
-  deleteProduct(id) {
-    const index = this.products.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Product not found');
+    const total = products.length;
+    const totalPages = Math.ceil(total / limit) || 1;
 
-    this.products.splice(index, 1);
-    this._saveProducts();
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const docs = products.slice(start, end);
+
+    return {
+      docs,
+      totalPages,
+      prevPage: page > 1 ? page - 1 : null,
+      nextPage: page < totalPages ? page + 1 : null,
+      page,
+      hasPrevPage: page > 1,
+      hasNextPage: page < totalPages,
+    };
   }
 }
